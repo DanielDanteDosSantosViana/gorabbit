@@ -1,102 +1,194 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"os"
 	"strings"
+	"io"
+	"errors"
+	"os"
+	"flag"
+	"github.com/boltdb/bolt"
+	"os/user"
 )
 
-type stringList []string
 
-func (s *stringList) String() string {
-	return fmt.Sprintf("%v", *s)
+var (
+
+	DB  *bolt.DB
+
+	ErrUsage = errors.New("usage")
+
+	ErrNotFoundCurrentUser = errors.New("not found current user")
+
+	ErrUnknownCommand = errors.New("unknown command")
+
+)
+
+func main() {
+
+	m := NewMain()
+
+	if DB !=nil{
+		defer DB.Close()
+	}
+	if err := m.Run(os.Args[1:]...); err == ErrUsage {
+		os.Exit(2)
+	} else if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 }
 
-func (s *stringList) Set(value string) error {
-	*s = strings.Split(value, ",")
+type Main struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+func NewMain() *Main {
+
+	return &Main{
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+}
+
+
+func (m *Main) Run(args ...string) error {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		fmt.Fprintln(m.Stderr, m.Usage())
+		return ErrUsage
+	}
+
+	switch args[0] {
+	case "help":
+		fmt.Fprintln(m.Stderr, m.Usage())
+		return ErrUsage
+
+	case "init":
+		return newInitCommand(m).Run(args[1:]...)
+
+	case "broker":
+		return ErrUsage
+	case "database":
+		return ErrUsage
+
+	default:
+		return ErrUnknownCommand
+	}
+}
+
+
+func (m *Main) Usage() string {
+	return strings.TrimLeft(`
+
+gorabbit is a tool for inspecting data to broker (RabbitMQ).
+
+Usage:
+	gorabbit command [arguments]
+The commands are:
+    init       initialize settings for gorabbit.
+    broker     run command to manipulate broker.
+    database   manage connections to databases for manipulate data to broker.
+    info       info about project
+    help       print this screen
+Use "gorabbit [command] -h" for more information about a command.
+`, "\n")
+}
+
+
+type InitCommand struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+
+}
+
+func newInitCommand(m *Main) *InitCommand {
+	return &InitCommand{
+		Stdin:  m.Stdin,
+		Stdout: m.Stdout,
+		Stderr: m.Stderr,
+	}
+}
+
+
+
+func (cmd *InitCommand) Run(args ...string) error {
+
+	db,err := createConnectionDB()
+	if err!=nil{
+		return err
+	}
+	DB = db
 	return nil
 }
 
-func main() {
-	borkerCommand := flag.NewFlagSet("broker", flag.ExitOnError)
-	dbCommand := flag.NewFlagSet("db", flag.ExitOnError)
 
-	borkerAdd := borkerCommand.String("add", "", "add uri to broker")
-	borkerExport := borkerCommand.String("export", "", " export data in broker to database . (Required)")
+type BrokerCommand struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
 
-	var brokerStringList dbStringList
-	borkerCommand.Var(&brokerStringList, "brokerStringList", "A comma seperated list of substrings to be counted.")
-
-	dbAdd := dbCommand.String("add", "", "add connection to database. ")
-	dbRemove := dbCommand.String("remove", "", "remove connection to database")
+}
 
 
-	if len(os.Args) < 2 {
-		fmt.Println("list or count subcommand is required")
-		os.Exit(1)
+func (cmd *BrokerCommand) Run(args ...string) error {
+
+
+	return nil
+}
+
+func (cmd *BrokerCommand) ParseFlags(args []string) (*BrokerOptions, error) {
+	var options BrokerOptions
+
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	fs.StringVar(&options.Add, "add", "", "")
+	fs.StringVar(&options.Remove, "remove", "", "")
+	fs.StringVar(&options.Remove, "list", "", "")
+	fs.StringVar(&options.Export, "export", "", "")
+	fs.SetOutput(cmd.Stderr)
+	if err := fs.Parse(args); err != nil {
+		return nil, err
 	}
 
-	switch os.Args[1] {
-	case "list":
-		listCommand.Parse(os.Args[2:])
-	case "count":
-		countCommand.Parse(os.Args[2:])
-	default:
-		flag.PrintDefaults()
-		os.Exit(1)
-	}
+	return &options, nil
+}
 
-	if listCommand.Parsed() {
-		// Required Flags
-		if *listTextPtr == "" {
-			listCommand.PrintDefaults()
-			os.Exit(1)
-		}
-		//Choice flag
-		metricChoices := map[string]bool{"chars": true, "words": true, "lines": true}
-		if _, validChoice := metricChoices[*listMetricPtr]; !validChoice {
-			listCommand.PrintDefaults()
-			os.Exit(1)
-		}
-		// Print
-		fmt.Printf("textPtr: %s, metricPtr: %s, uniquePtr: %t\n",
-			*listTextPtr,
-			*listMetricPtr,
-			*listUniquePtr,
-		)
-	}
 
-	if countCommand.Parsed() {
-		// Required Flags
-		if *countTextPtr == "" {
-			countCommand.PrintDefaults()
-			os.Exit(1)
-		}
-		// If the metric flag is substring, the substring or substringList flag is required
-		if *countMetricPtr == "substring" && *countSubstringPtr == "" && (&countStringList).String() == "[]" {
-			countCommand.PrintDefaults()
-			os.Exit(1)
-		}
-		//If the metric flag is not substring, the substring flag must not be used
-		if *countMetricPtr != "substring" && (*countSubstringPtr != "" || (&countStringList).String() != "[]") {
-			fmt.Println("--substring and --substringList may only be used with --metric=substring.")
-			countCommand.PrintDefaults()
-			os.Exit(1)
-		}
-		//Choice flag
-		metricChoices := map[string]bool{"chars": true, "words": true, "lines": true, "substring": true}
-		if _, validChoice := metricChoices[*listMetricPtr]; !validChoice {
-			countCommand.PrintDefaults()
-			os.Exit(1)
-		}
-		//Print
-		fmt.Printf("textPtr: %s, metricPtr: %s, substringPtr: %v, substringListPtr: %v, uniquePtr: %t\n",
-			*countTextPtr,
-			*countMetricPtr,
-			*countSubstringPtr,
-			(&countStringList).String(),
-			*countUniquePtr,
-		)
+type BrokerOptions struct {
+	Add   string
+	Remove     string
+	Export      string
+}
+
+
+
+func createConfigDir() (string , error){
+	userCurrent, err := user.Current();
+	if err != nil {
+		fmt.Println(err)
+		return "",ErrNotFoundCurrentUser
 	}
+	path := userCurrent.HomeDir+"/.gorabbit"
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.Mkdir(path, 0700);
+	}
+	return path,nil
+}
+
+
+func createConnectionDB() (*bolt.DB,error){
+	path,err := createConfigDir()
+	if err!=nil{
+		return nil, err
+	}
+	path = path+"/gorabbit.db"
+
+	db, err := bolt.Open(path, 0600, nil)
+	if err != nil {
+		return db, err;
+	}
+	return db,nil
 }

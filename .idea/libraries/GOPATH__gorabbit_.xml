@@ -1,0 +1,36 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;gorabbit&gt;">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../../../forca" />
+      <root url="file://$PROJECT_DIR$/../../../performance-danielviana" />
+      <root url="file://$PROJECT_DIR$/../../../server_receiver_packageHTTP" />
+      <root url="file://$PROJECT_DIR$/../../../server_auth" />
+      <root url="file://$PROJECT_DIR$/../../../bitbucket.org" />
+      <root url="file://$PROJECT_DIR$/../../../ola" />
+      <root url="file://$PROJECT_DIR$/../.." />
+      <root url="file://$PROJECT_DIR$/../../../gitlab.com" />
+      <root url="file://$PROJECT_DIR$/../../../golang.org" />
+      <root url="file://$PROJECT_DIR$/../../../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../../../eventsmaps" />
+      <root url="file://$PROJECT_DIR$/../../../appengine-guestbook-go-part1-helloworld" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../../../forca" />
+      <root url="file://$PROJECT_DIR$/../../../performance-danielviana" />
+      <root url="file://$PROJECT_DIR$/../../../server_receiver_packageHTTP" />
+      <root url="file://$PROJECT_DIR$/../../../server_auth" />
+      <root url="file://$PROJECT_DIR$/../../../bitbucket.org" />
+      <root url="file://$PROJECT_DIR$/../../../ola" />
+      <root url="file://$PROJECT_DIR$/../.." />
+      <root url="file://$PROJECT_DIR$/../../../gitlab.com" />
+      <root url="file://$PROJECT_DIR$/../../../golang.org" />
+      <root url="file://$PROJECT_DIR$/../../../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../../../eventsmaps" />
+      <root url="file://$PROJECT_DIR$/../../../appengine-guestbook-go-part1-helloworld" />
+    </SOURCES>
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
+  </library>
+</component>
