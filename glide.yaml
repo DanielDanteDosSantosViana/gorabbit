@@ -9,3 +9,5 @@ import:
 - package: github.com/urfave/negroni
   version: ^0.3.0
 - package: gopkg.in/mgo.v2
+- package: gopkg.in/go-playground/validator.v9
+  version: ^9.15.0

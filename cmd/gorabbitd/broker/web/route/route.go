@@ -8,16 +8,19 @@ import (
 	"net/http"
 )
 
+
 func API(sessiondb db.Session) *mux.Router {
 
 	repository := repository.NewMongoBrokerRepository(sessiondb)
-	handler := handler.NewBrokerHandler(repository)
+	brokerHandler := handler.NewBrokerHandler(repository)
 
 	r := mux.NewRouter().StrictSlash(true)
 
 	api := r.PathPrefix("/v1").Subrouter()
 
-	api.HandleFunc("/broker", handler.Create).Methods(http.MethodPost)
+	api.HandleFunc("/brokers", brokerHandler.Create).Methods(http.MethodPost)
+	api.HandleFunc("/brokers/{id}", brokerHandler.Delete).Methods(http.MethodDelete)
+	api.HandleFunc("/brokers", brokerHandler.List).Methods(http.MethodGet)
 
 	return api
 }

@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+
+  gorabbit:
+    build: .
+    restart: always
+    container_name: gorabbit
+    environment:
+      PORT_ENV: 2222
+      MONGO_HOST: mongodb://mongodb/gorabbit
+      DB_NAME: gorabbit
+
+    ports:
+      - "2222:2222"
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"

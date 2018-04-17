@@ -2,6 +2,7 @@ package main
 
 import (
 	broker_routes "github.com/DanielDanteDosSantosViana/gorabbit/cmd/gorabbitd/broker/web/route"
+	queue_routes "github.com/DanielDanteDosSantosViana/gorabbit/cmd/gorabbitd/queue/web/route"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/db"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/enviroment"
 	log "github.com/sirupsen/logrus"
@@ -26,11 +27,13 @@ func main() {
 
 	negroniAPI := negroni.New()
 
-	brokerAPI := broker_routes.API(session)
+	api := broker_routes.API(session)
+	queue_routes.API(session,api)
 
-	negroniAPI.UseHandler(brokerAPI)
 
-	log.Info(" gorabbit running on port %s ", enviroment.Conf.Service.Port)
+	negroniAPI.UseHandler(api)
+
+	log.Info(" gorabbit running on port ", enviroment.Conf.Service.Port)
 
 	err = http.ListenAndServe(":"+enviroment.Conf.Service.Port, negroniAPI)
 	if err != nil {
