@@ -1,21 +1,21 @@
 package handler
 
 import (
-	"github.com/DanielDanteDosSantosViana/gorabbit/internal/queue/repository"
+	"encoding/json"
+	"errors"
 	broker_repo "github.com/DanielDanteDosSantosViana/gorabbit/internal/broker/repository"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/web"
-	"net/http"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/queue"
-	"io/ioutil"
-	"encoding/json"
-	log "github.com/sirupsen/logrus"
+	"github.com/DanielDanteDosSantosViana/gorabbit/internal/queue/repository"
 	"github.com/gorilla/mux"
-	"errors"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/mgo.v2/bson"
+	"io/ioutil"
+	"net/http"
 )
 
 type QueueHandler struct {
-	repository repository.QueueRepository
+	repository       repository.QueueRepository
 	brokerRepository broker_repo.BrokerRepository
 }
 
@@ -30,9 +30,10 @@ func (q *QueueHandler) Create(w http.ResponseWriter, r *http.Request) {
 	broker_id_req := vars["broker_id"]
 	broker_id := bson.ObjectIdHex(broker_id_req)
 
-	if broker, err:= q.brokerRepository.Get(broker_id);err!=nil{
+	if broker, err := q.brokerRepository.Get(broker_id); err != nil {
 		err := web.IsRequestValid(broker)
-		if err !=nil{
+		if err != nil {
+			log.WithFields(log.Fields{"broker": broker}).Error("saved with sucess")
 			web.RespondError(w, err, http.StatusBadRequest)
 			return
 		}
@@ -50,7 +51,7 @@ func (q *QueueHandler) Create(w http.ResponseWriter, r *http.Request) {
 	log.Println(queue.BrokerID)
 	log.Println(broker_id)
 	err := web.IsRequestValid(queue)
-	if err !=nil{
+	if err != nil {
 		web.RespondError(w, err, http.StatusBadRequest)
 		return
 	}
@@ -66,20 +67,20 @@ func (q *QueueHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idReq := vars["id"]
 
 	broker_id := bson.ObjectIdHex(broker_id_req)
-	if broker, err:= q.brokerRepository.Get(broker_id);err!=nil{
+	if broker, err := q.brokerRepository.Get(broker_id); err != nil {
 		err := web.IsRequestValid(broker)
-		if err !=nil{
+		if err != nil {
 			web.RespondError(w, err, http.StatusBadRequest)
 			return
 		}
 	}
 
-	if idReq==""{
+	if idReq == "" {
 		web.RespondError(w, errors.New("id is required"), http.StatusBadRequest)
 		return
 	}
 	id := bson.ObjectIdHex(idReq)
-	if err := q.repository.Delete(id);err !=nil{
+	if err := q.repository.Delete(id); err != nil {
 		web.Respond(w, err, http.StatusInternalServerError)
 		return
 	}
@@ -92,20 +93,20 @@ func (q *QueueHandler) List(w http.ResponseWriter, r *http.Request) {
 	broker_id := vars["broker_id"]
 	id := bson.ObjectIdHex(broker_id)
 
-	if broker, err:= q.brokerRepository.Get(id);err!=nil{
+	if broker, err := q.brokerRepository.Get(id); err != nil {
 		err := web.IsRequestValid(broker)
-		if err !=nil{
-			web.RespondError(w, err, http.StatusBadRequest)
+		if err != nil {
+			log.WithFields(log.Fields{"broker_id": id}).Error(err.Error())
+			web.Respond(w, []queue.Queue{}, http.StatusOK)
 			return
 		}
 	}
 
 	queues, err := q.repository.ListByBrokerID(id)
-	if err !=nil{
+	if err != nil {
 		web.RespondError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	web.Respond(w, queues, http.StatusOK)
 }
-

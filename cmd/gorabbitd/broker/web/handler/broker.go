@@ -2,23 +2,26 @@ package handler
 
 import (
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/broker/repository"
-	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/web"
-	"net/http"
-	"github.com/DanielDanteDosSantosViana/gorabbit/internal/broker"
-	"io/ioutil"
+	queue_repo "github.com/DanielDanteDosSantosViana/gorabbit/internal/queue/repository"
+
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
-	"github.com/gorilla/mux"
 	"errors"
+	"github.com/DanielDanteDosSantosViana/gorabbit/internal/broker"
+	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/web"
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/mgo.v2/bson"
+	"io/ioutil"
+	"net/http"
 )
 
 type BrokerHandler struct {
 	repository repository.BrokerRepository
+	queueRepo  queue_repo.QueueRepository
 }
 
-func NewBrokerHandler(repository repository.BrokerRepository) *BrokerHandler {
-	return &BrokerHandler{repository}
+func NewBrokerHandler(repository repository.BrokerRepository, queueRepo queue_repo.QueueRepository) *BrokerHandler {
+	return &BrokerHandler{repository, queueRepo}
 }
 
 func (b *BrokerHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -32,12 +35,13 @@ func (b *BrokerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := web.IsRequestValid(broker)
-	if err !=nil{
+	if err != nil {
 		web.RespondError(w, err, http.StatusBadRequest)
 		return
 	}
 
 	b.repository.Store(broker)
+	log.WithFields(log.Fields{"broker": broker}).Info("saved with sucess")
 
 	web.Respond(w, broker, http.StatusCreated)
 }
@@ -46,26 +50,32 @@ func (b *BrokerHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	idReq := vars["id"]
-	if idReq==""{
-		web.RespondError(w, errors.New("id is required"), http.StatusBadRequest)
+	if idReq == "" {
+		err := errors.New("id is required")
+		log.WithFields(log.Fields{"id": idReq}).Error(err.Error())
+		web.RespondError(w, err, http.StatusBadRequest)
 		return
 	}
 	id := bson.ObjectIdHex(idReq)
-	if err := b.repository.Delete(id);err !=nil{
+	if err := b.repository.Delete(id); err != nil {
+		log.WithFields(log.Fields{"id": idReq}).Error(err.Error())
 		web.Respond(w, err, http.StatusInternalServerError)
 		return
 	}
 
+	b.queueRepo.DeleteByBrokerID(id)
+
+	log.WithFields(log.Fields{"broker with id ": idReq}).Info("deleted with sucess")
 	web.Respond(w, nil, http.StatusNoContent)
 }
 
 func (b *BrokerHandler) List(w http.ResponseWriter, r *http.Request) {
 	brokers, err := b.repository.List()
-	if err !=nil{
+	if err != nil {
+		log.WithFields(log.Fields{"brokers": brokers}).Error(err.Error())
 		web.RespondError(w, err, http.StatusInternalServerError)
 		return
 	}
 
 	web.Respond(w, brokers, http.StatusOK)
 }
-

@@ -9,5 +9,5 @@ type BrokerRepository interface {
 	Store(a *models.Broker) (*models.Broker, error)
 	Delete(id bson.ObjectId) error
 	List() ([]*models.Broker, error)
-	Get(id bson.ObjectId) (*models.Broker,error)
+	Get(id bson.ObjectId) (*models.Broker, error)
 }

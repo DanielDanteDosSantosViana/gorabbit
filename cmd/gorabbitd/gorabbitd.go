@@ -5,6 +5,7 @@ import (
 	queue_routes "github.com/DanielDanteDosSantosViana/gorabbit/cmd/gorabbitd/queue/web/route"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/db"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/enviroment"
+	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/web"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 	"net/http"
@@ -27,9 +28,9 @@ func main() {
 
 	negroniAPI := negroni.New()
 
-	api := broker_routes.API(session)
-	queue_routes.API(session,api)
-
+	api := web.NewAPI()
+	broker_routes.AddAPI(session, api)
+	queue_routes.AddAPI(session, api)
 
 	negroniAPI.UseHandler(api)
 

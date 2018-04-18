@@ -9,4 +9,5 @@ type QueueRepository interface {
 	Store(a *models.Queue) (*models.Queue, error)
 	Delete(id bson.ObjectId) error
 	ListByBrokerID(id bson.ObjectId) ([]*models.Queue, error)
+	DeleteByBrokerID(id bson.ObjectId) error
 }

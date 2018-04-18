@@ -1,11 +1,9 @@
 package repository
 
-
-
 import (
-	models "github.com/DanielDanteDosSantosViana/gorabbit/internal/queue"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/db"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/enviroment"
+	models "github.com/DanielDanteDosSantosViana/gorabbit/internal/queue"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -38,7 +36,7 @@ func (q *mongoQueueRepository) Delete(id bson.ObjectId) error {
 	collection := q.getCollection()
 	err := collection.Remove(bson.M{"_id": id})
 
-	return  err
+	return err
 }
 
 func (q *mongoQueueRepository) ListByBrokerID(id bson.ObjectId) ([]*models.Queue, error) {
@@ -49,9 +47,20 @@ func (q *mongoQueueRepository) ListByBrokerID(id bson.ObjectId) ([]*models.Queue
 
 	collection := q.getCollection()
 
-	err := collection.Find(bson.M{"broker_id":id}).All(&queues)
+	err := collection.Find(bson.M{"broker_id": id}).All(&queues)
 
 	return queues, err
+}
+
+func (q *mongoQueueRepository) DeleteByBrokerID(id bson.ObjectId) error {
+	session := q.SessionDB.Clone()
+	defer session.Close()
+
+	collection := q.getCollection()
+
+	err := collection.Remove(bson.M{"broker_id": id})
+
+	return err
 }
 
 func (q *mongoQueueRepository) getCollection() db.Collection {

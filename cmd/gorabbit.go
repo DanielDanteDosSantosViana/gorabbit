@@ -6,16 +6,20 @@ import (
 	"flag"
 	"fmt"
 	"github.com/boltdb/bolt"
+	"github.com/parnurzeal/gorequest"
 	"io"
+	"net/http"
 	"os"
 	"os/user"
 	"strings"
 )
 
 var (
-	ErrUsage               = errors.New("usage")
-	ErrUnknownCommand      = errors.New("unknown command")
-	ErrNameRequired        = errors.New(" -n (name of target) required")
+	ErrUsage          = errors.New("usage")
+	ErrUnknownCommand = errors.New("unknown command")
+	ErrNameRequired   = errors.New(" -n (name of target) required")
+	ErrTargetRequired = errors.New(" -t (target) required")
+
 	ErrNotFoundCurrentUser = errors.New("not found current user")
 )
 
@@ -56,10 +60,10 @@ func (m *Main) Run(args ...string) error {
 		return ErrUsage
 
 	case "target":
-		return newInitCommand(m).Run(args[1:]...)
+		return newTargetCommand(m).Run(args[1:]...)
 
 	case "broker":
-		return ErrUsage
+		return newBrokerCommand(m).Run(args[1:]...)
 
 	default:
 		return ErrUnknownCommand
@@ -90,7 +94,7 @@ type TargetCommand struct {
 	Stderr io.Writer
 }
 
-func newInitCommand(m *Main) *TargetCommand {
+func newTargetCommand(m *Main) *TargetCommand {
 	return &TargetCommand{
 		Stdin:  m.Stdin,
 		Stdout: m.Stdout,
@@ -109,42 +113,37 @@ func (cmd *TargetCommand) Run(args ...string) error {
 		return ErrUsage
 
 	case "add":
-		return newAddCommand(cmd).Run(args[1:]...)
+		return newAddTargetCommand(cmd).Run(args[1:]...)
 
 	case "remove":
-		return newRemoveCommand(cmd).Run(args[1:]...)
+		return newRemoveTargetCommand(cmd).Run(args[1:]...)
 
 	case "list":
-		return newListCommand(cmd).Run(args[1:]...)
+		return newListTargetCommand(cmd).Run(args[1:]...)
 
 	default:
 		return ErrUnknownCommand
 
 	}
+
 	return nil
 }
 
-type TargetArgs struct {
-}
-
-type TargetResult struct {
-}
-
-type AddCommand struct {
+type AddTargetCommand struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 }
 
-func newAddCommand(m *TargetCommand) *AddCommand {
-	return &AddCommand{
+func newAddTargetCommand(m *TargetCommand) *AddTargetCommand {
+	return &AddTargetCommand{
 		Stdin:  m.Stdin,
 		Stdout: m.Stdout,
 		Stderr: m.Stderr,
 	}
 }
 
-func (cmd *AddCommand) Run(args ...string) error {
+func (cmd *AddTargetCommand) Run(args ...string) error {
 	if len(args) == 0 {
 		fmt.Fprintln(cmd.Stderr, cmd.Usage())
 		return ErrUsage
@@ -188,24 +187,24 @@ func (cmd *AddCommand) Run(args ...string) error {
 	return err
 }
 
-func (m *AddCommand) Usage() string {
+func (m *AddTargetCommand) Usage() string {
 	return strings.TrimLeft(`
 
 Usage: gorabbit target add [options]
 
-Add' is required to save local or remote gorrabit deamon
+Add' is required to save local or remote gorabbit
 information to send commands when needed.
 
 The options are:
     -n    Name of target.
-    -p    Port of daemon process.
-    -h  Host of daemon local or remote, by default localhost.
+    -p    Port of target process.
+    -h    Host of target local or remote, by default localhost.
     help  print this screen
 
 `, "\n")
 }
 
-func (cmd *AddCommand) ParseOptions(args []string) (*Options, error) {
+func (cmd *AddTargetCommand) ParseOptions(args []string) (*Options, error) {
 	var options Options
 
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
@@ -220,24 +219,25 @@ func (cmd *AddCommand) ParseOptions(args []string) (*Options, error) {
 	if options.Name == "" {
 		return &options, ErrNameRequired
 	}
+
 	return &options, nil
 }
 
-type ListCommand struct {
+type ListTargetCommand struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 }
 
-func newListCommand(t *TargetCommand) *ListCommand {
-	return &ListCommand{
+func newListTargetCommand(t *TargetCommand) *ListTargetCommand {
+	return &ListTargetCommand{
 		Stdin:  t.Stdin,
 		Stdout: t.Stdout,
 		Stderr: t.Stderr,
 	}
 }
 
-func (cmd *ListCommand) Run(args ...string) error {
+func (cmd *ListTargetCommand) Run(args ...string) error {
 	if len(args) > 0 {
 		if args[0] == "help" {
 			fmt.Fprintln(cmd.Stderr, cmd.Usage())
@@ -267,7 +267,7 @@ func (cmd *ListCommand) Run(args ...string) error {
 	return nil
 }
 
-func (m *ListCommand) Usage() string {
+func (m *ListTargetCommand) Usage() string {
 	return strings.TrimLeft(`
 
 Usage: gorabbit target list
@@ -279,21 +279,21 @@ The options are:
 `, "\n")
 }
 
-type RemoveCommand struct {
+type RemoveTargetCommand struct {
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
 }
 
-func newRemoveCommand(m *TargetCommand) *RemoveCommand {
-	return &RemoveCommand{
+func newRemoveTargetCommand(m *TargetCommand) *RemoveTargetCommand {
+	return &RemoveTargetCommand{
 		Stdin:  m.Stdin,
 		Stdout: m.Stdout,
 		Stderr: m.Stderr,
 	}
 }
 
-func (cmd *RemoveCommand) Run(args ...string) error {
+func (cmd *RemoveTargetCommand) Run(args ...string) error {
 	if len(args) == 0 {
 		fmt.Fprintln(cmd.Stderr, cmd.Usage())
 		return ErrUsage
@@ -330,7 +330,7 @@ func (cmd *RemoveCommand) Run(args ...string) error {
 	return nil
 }
 
-func (m *RemoveCommand) Usage() string {
+func (m *RemoveTargetCommand) Usage() string {
 	return strings.TrimLeft(`
 
 Usage: gorabbit target remove [options]
@@ -344,7 +344,7 @@ The options are:
 `, "\n")
 }
 
-func (cmd *RemoveCommand) ParseOptions(args []string) (*Options, error) {
+func (cmd *RemoveTargetCommand) ParseOptions(args []string) (*Options, error) {
 	var options Options
 
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
@@ -383,9 +383,10 @@ func (t *Target) decode(data []byte) (*Target, error) {
 }
 
 type Options struct {
-	Name string
-	Host string
-	Port string
+	Name   string
+	Host   string
+	Port   string
+	Target string
 }
 
 func (m *TargetCommand) Usage() string {
@@ -400,7 +401,7 @@ The commands are:
     add     add target daemon local or remote for gorabbit.
     remove  remove targets.
     list    list all targets.
-    help       print this screen
+    help    print this screen
 
 Use "gorabbit target [commands] -h" for more information about a commands.
 `, "\n")
@@ -412,7 +413,34 @@ type BrokerCommand struct {
 	Stderr io.Writer
 }
 
+func newBrokerCommand(m *Main) *BrokerCommand {
+	return &BrokerCommand{
+		Stdin:  m.Stdin,
+		Stdout: m.Stdout,
+		Stderr: m.Stderr,
+	}
+}
+
 func (cmd *BrokerCommand) Run(args ...string) error {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		fmt.Fprintln(cmd.Stderr, cmd.Usage())
+		return ErrUsage
+	}
+	switch args[0] {
+	case "help":
+		fmt.Fprintln(cmd.Stderr, cmd.Usage())
+		return ErrUsage
+
+	case "add":
+		return newAddBrokerCommand(cmd).Run(args[1:]...)
+
+	case "remove":
+		return newRemoveBrokerCommand(cmd).Run(args[1:]...)
+
+	default:
+		return ErrUnknownCommand
+
+	}
 
 	return nil
 }
@@ -422,39 +450,171 @@ func (cmd *BrokerCommand) Usage() string {
 
 Usage: gorabbit broker [commands]
 
-Target add, remove or list connections local or remote existes in deamon
-gorabbit.
+broker command is usage to manage conections of brokers( RabbitMQ ).
 
 The commands are:
-    add     add target daemon local or remote for gorabbit.
-    remove  remove targets.
-    list    list all targets.
-    help       print this screen
+    add     add brokers on local or remote gorabbit.
+    remove  remove brokers.
+    list    list all brokers.
+    help    print this screen
 
-Use "gorabbit target [commands] -h" for more information about a commands.
+Use "gorabbit broker [commands] -h" for more information about a commands.
 `, "\n")
 }
 
-func (cmd *BrokerCommand) ParseFlags(args []string) (*BrokerOptions, error) {
-	var options BrokerOptions
+type AddBrokerCommand struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+func newAddBrokerCommand(b *BrokerCommand) *AddBrokerCommand {
+	return &AddBrokerCommand{
+		Stdin:  b.Stdin,
+		Stdout: b.Stdout,
+		Stderr: b.Stderr,
+	}
+}
+
+func (cmd *AddBrokerCommand) Run(args ...string) error {
+	if len(args) == 0 {
+		fmt.Fprintln(cmd.Stderr, cmd.Usage())
+		return ErrUsage
+	}
+
+	if args[0] == "help" {
+		fmt.Fprintln(cmd.Stderr, cmd.Usage())
+		return ErrUsage
+	}
+
+	options, err := cmd.ParseOptions(args)
+	if err != nil {
+		return err
+	}
+
+	broker := &Broker{Name: options.Name, Port: options.Port, Host: options.Host}
+	db, err := createConnectionDB()
+	if err != nil {
+		return err
+	}
+
+	err = db.View(func(tx *bolt.Tx) error {
+		target := &Target{}
+		targetB := tx.Bucket([]byte("target")).Get([]byte(options.Target))
+		target, err := target.decode(targetB)
+		if err != nil {
+			return err
+		}
+		request := gorequest.New()
+		uri := "http://" + target.Host + ":" + target.Port + "/v1/brokers"
+		resp, _, errs := request.Post(uri).
+			Set("Notes", "target is coming!").
+			Send(broker).
+			End()
+		if len(errs) > 0 {
+			return errs[0]
+		}
+		if resp.StatusCode != http.StatusCreated {
+			fmt.Fprintln(cmd.Stdout, "error to create broker, check the target are up.\n")
+			return nil
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type Broker struct {
+	Name string `json:"name"`
+	Host string `json:"host"`
+	Port string `json:"port"`
+}
+
+func (m *AddBrokerCommand) Usage() string {
+	return strings.TrimLeft(`
+
+Usage: gorabbit broker add [options]
+
+add broker in defined target.
+
+The options are:
+
+    -t  target of gorabbit (required).
+    -n  name of broker (required).
+    -h  host of broker (default=localhost) (required).
+    -p  port (default=5672) (required).
+     help  print this screen
+
+`, "\n")
+}
+
+func (cmd *AddBrokerCommand) ParseOptions(args []string) (*Options, error) {
+	var options Options
 
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	fs.StringVar(&options.Add, "add", "", "")
-	fs.StringVar(&options.Remove, "remove", "", "")
-	fs.StringVar(&options.Remove, "list", "", "")
-	fs.StringVar(&options.Export, "export", "", "")
+	fs.StringVar(&options.Target, "t", "", "name of target")
+	fs.StringVar(&options.Host, "h", "localhost", "host of broker")
+	fs.StringVar(&options.Port, "p", "5672", "port of broker")
+	fs.StringVar(&options.Name, "n", "", "name of broker")
+
 	fs.SetOutput(cmd.Stderr)
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
 
+	if options.Name == "" {
+		return &options, ErrNameRequired
+	}
+
+	if options.Target == "" {
+		return &options, ErrTargetRequired
+	}
 	return &options, nil
 }
 
-type BrokerOptions struct {
-	Add    string
-	Remove string
-	Export string
+type RemoveBrokerCommand struct {
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+func newRemoveBrokerCommand(b *BrokerCommand) *RemoveBrokerCommand {
+	return &RemoveBrokerCommand{
+		Stdin:  b.Stdin,
+		Stdout: b.Stdout,
+		Stderr: b.Stderr,
+	}
+}
+
+func (cmd *RemoveBrokerCommand) Run(args ...string) error {
+	if len(args) == 0 {
+		fmt.Fprintln(cmd.Stderr, cmd.Usage())
+		return ErrUsage
+	}
+
+	if args[0] == "help" {
+		fmt.Fprintln(cmd.Stderr, cmd.Usage())
+		return ErrUsage
+	}
+
+	return nil
+}
+
+func (m *RemoveBrokerCommand) Usage() string {
+	return strings.TrimLeft(`
+
+Usage: gorabbit broker remove id [options]
+
+remove broker by id.
+
+The options are:
+    help  print this screen
+
+`, "\n")
 }
 
 func createConfigDir() (string, error) {

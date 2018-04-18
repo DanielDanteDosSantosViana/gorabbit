@@ -37,7 +37,7 @@ func (m *mongoBrokerRepository) Delete(id bson.ObjectId) error {
 	collection := m.getCollection()
 	err := collection.Remove(bson.M{"_id": id})
 
-	return  err
+	return err
 }
 
 func (m *mongoBrokerRepository) List() ([]*models.Broker, error) {
@@ -61,7 +61,7 @@ func (m *mongoBrokerRepository) Get(id bson.ObjectId) (*models.Broker, error) {
 
 	collection := m.getCollection()
 
-	err := collection.Find(bson.M{"_id":id}).One(&broker)
+	err := collection.Find(bson.M{"_id": id}).One(&broker)
 	log.Println(broker)
 	return broker, err
 }
