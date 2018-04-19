@@ -251,9 +251,15 @@ func (cmd *ListTargetCommand) Run(args ...string) error {
 	}
 
 	target := &Target{}
+
 	db.View(func(tx *bolt.Tx) error {
-		c := tx.Bucket([]byte("target")).Cursor()
 		fmt.Fprintln(cmd.Stdout, " NAME           HOST       PORT")
+		bucket := tx.Bucket([]byte("target"))
+		if bucket==nil{
+			return nil
+		}
+
+		c := bucket.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			target, err = target.decode(v)
 			if err != nil {
@@ -318,8 +324,12 @@ func (cmd *RemoveTargetCommand) Run(args ...string) error {
 	target := &Target{Name: options.Name}
 	err = db.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte("target"))
+		if bucket==nil{
+			fmt.Fprintln(cmd.Stdout, "not found target ")
+			return nil
+		}
 
-		err := bucket.Delete([]byte(target.Name))
+		err = bucket.Delete([]byte(target.Name))
 		if err != nil {
 			fmt.Fprintln(cmd.Stdout, "could not delete target with name %s : %s", target.Name, err)
 			return err
