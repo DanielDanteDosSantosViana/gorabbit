@@ -10,6 +10,7 @@ import (
 	"github.com/urfave/negroni"
 	"net/http"
 	"os"
+	"github.com/DanielDanteDosSantosViana/gorabbit/internal/collector"
 )
 
 func init() {
@@ -27,6 +28,12 @@ func main() {
 	}
 
 	negroniAPI := negroni.New()
+
+	_,err = collector.NewConn()
+	if err!=nil{
+		log.Error(err)
+	}
+
 
 	api := web.NewAPI()
 	broker_routes.AddAPI(session, api)

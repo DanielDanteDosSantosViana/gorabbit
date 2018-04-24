@@ -1,5 +1,5 @@
-hash: 96b6892e3951f83eac548109b3184554dffd76675d18e73730fd55384b586b9f
-updated: 2018-04-16T13:58:06.744639722-03:00
+hash: 03b4807e4bc9a7c3a3e90e02ceb752b608f2d60126a0c18d0ed8c4f045d2ecae
+updated: 2018-04-20T17:10:55.069515707-03:00
 imports:
 - name: github.com/boltdb/bolt
   version: 2f1ce7a837dcb8da3ec595b1dac9d0632f0f99e8
@@ -13,14 +13,26 @@ imports:
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
   version: 53c1911da2b537f792e7cafcb446b05ffe33b996
+- name: github.com/moul/http2curl
+  version: 9ac6cf4d929b2fa8fd2d2e6dec5bb0feb4f4911d
+- name: github.com/parnurzeal/gorequest
+  version: 8e3aed27fe49f7fdc765dad067845f600fc984e8
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/sirupsen/logrus
   version: c155da19408a8799da419ed3eeb0cb5db0ad5dbc
+- name: github.com/streadway/amqp
+  version: 8e4aba63da9fc5571e01c6a45dc809a58cbc5a68
 - name: github.com/urfave/negroni
   version: 5dbbc83f748fc3ad38585842b0aedab546d0ea1e
 - name: golang.org/x/crypto
   version: bd6f299fb381e4c3393d1c4b1f0b94f5e77650c8
   subpackages:
   - ssh/terminal
+- name: golang.org/x/net
+  version: f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f
+  subpackages:
+  - publicsuffix
 - name: golang.org/x/sys
   version: 4fe5d7925040acd225bf9c7cee65e82d07f06bff
   subpackages:

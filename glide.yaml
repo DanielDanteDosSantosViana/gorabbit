@@ -11,3 +11,4 @@ import:
 - package: gopkg.in/mgo.v2
 - package: gopkg.in/go-playground/validator.v9
   version: ^9.15.0
+- package: github.com/streadway/amqp
