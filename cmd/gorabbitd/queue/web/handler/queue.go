@@ -12,11 +12,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"net/http"
+	"github.com/DanielDanteDosSantosViana/gorabbit/internal/collector"
 )
 
 type QueueHandler struct {
 	repository       repository.QueueRepository
 	brokerRepository broker_repo.BrokerRepository
+	collector  *collector.Collector
 }
 
 func NewQueueHandler(repository repository.QueueRepository, brokerRepo broker_repo.BrokerRepository) *QueueHandler {
@@ -48,8 +50,6 @@ func (q *QueueHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	queue.BrokerID = broker_id
-	log.Println(queue.BrokerID)
-	log.Println(broker_id)
 	err := web.IsRequestValid(queue)
 	if err != nil {
 		web.RespondError(w, err, http.StatusBadRequest)
@@ -109,4 +109,19 @@ func (q *QueueHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	web.Respond(w, queues, http.StatusOK)
+}
+
+
+func (q *QueueHandler) Command(w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+
+	commandRequest:= &collector.Command{}
+
+	if err := json.Unmarshal(body, commandRequest); err != nil {
+		log.WithFields(log.Fields{"commandRequest": commandRequest, "err": err.Error()}).Error("Payload invalid of command request")
+		web.RespondError(w, err, http.StatusUnprocessableEntity)
+		return
+	}
+	:= q.collector.Execute(commandRequest)
+	web.Respond(w, nil, http.StatusCreated)
 }

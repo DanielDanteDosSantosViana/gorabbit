@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/collector"
+	"sync"
 )
 
 func init() {
@@ -29,7 +30,7 @@ func main() {
 
 	negroniAPI := negroni.New()
 
-	_,err = collector.NewConn()
+	c,err = collector.NewCollector(session)
 	if err!=nil{
 		log.Error(err)
 	}

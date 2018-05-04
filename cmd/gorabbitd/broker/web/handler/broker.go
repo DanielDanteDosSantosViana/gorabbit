@@ -13,11 +13,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
 	"net/http"
+	"github.com/DanielDanteDosSantosViana/gorabbit/internal/collector"
 )
 
 type BrokerHandler struct {
 	repository repository.BrokerRepository
 	queueRepo  queue_repo.QueueRepository
+	collector  *collector.Collector
 }
 
 func NewBrokerHandler(repository repository.BrokerRepository, queueRepo queue_repo.QueueRepository) *BrokerHandler {

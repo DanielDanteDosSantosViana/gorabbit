@@ -10,13 +10,21 @@ import (
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/db"
 )
 
+type CommandRequest struct {
+	Cmd string
+}
+
+type Command interface {
+	Execute() error
+	BuildCommand(cmd CommandRequest) Command
+}
+
 type Collector struct {
 	workers  map[string]*Worker
 	eventRepo repo.EventRepository
-
 }
 
-func NewConn(sessiondb db.Session) (*Collector,error) {
+func NewCollector(sessiondb db.Session) (*Collector,error) {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/all")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
@@ -28,23 +36,9 @@ func open(eventRepo repo.EventRepository)(*Collector,error){
 	return &Collector{eventRepo},nil
 }
 
-
-func (c * Collector)manager(){
+func (c * Collector)Run(cmd Command) error{
+	return cmd.Execute()
 }
-
-func (c * Collector)add(worker *Worker){
-}
-
-func (c * Collector)removeWork(id uint16){
-}
-
-func (c * Collector)run(worker *Worker){
-
-}
-
-
-
-
 
 func failOnError(err error, msg string) {
 	if err != nil {
