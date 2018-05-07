@@ -5,7 +5,6 @@ import (
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/db"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/enviroment"
 	"gopkg.in/mgo.v2/bson"
-	"log"
 )
 
 var broker_collection = "broker"
@@ -62,7 +61,6 @@ func (m *mongoBrokerRepository) Get(id bson.ObjectId) (*models.Broker, error) {
 	collection := m.getCollection()
 
 	err := collection.Find(bson.M{"_id": id}).One(&broker)
-	log.Println(broker)
 	return broker, err
 }
 func (r *mongoBrokerRepository) getCollection() db.Collection {

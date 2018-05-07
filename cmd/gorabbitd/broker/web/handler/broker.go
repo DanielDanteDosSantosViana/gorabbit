@@ -22,8 +22,11 @@ type BrokerHandler struct {
 	collector  *collector.Collector
 }
 
-func NewBrokerHandler(repository repository.BrokerRepository, queueRepo queue_repo.QueueRepository) *BrokerHandler {
-	return &BrokerHandler{repository, queueRepo}
+func NewBrokerHandler(repository repository.BrokerRepository,
+			queueRepo queue_repo.QueueRepository,
+			collector *collector.Collector) *BrokerHandler {
+
+	return &BrokerHandler{repository, queueRepo,collector}
 }
 
 func (b *BrokerHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +48,7 @@ func (b *BrokerHandler) Create(w http.ResponseWriter, r *http.Request) {
 	b.repository.Store(broker)
 	log.WithFields(log.Fields{"broker": broker}).Info("saved with sucess")
 
+	b.collector.AddCollector(broker.ID.String(),broker.UrlConnection)
 	web.Respond(w, broker, http.StatusCreated)
 }
 
@@ -80,4 +84,41 @@ func (b *BrokerHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	web.Respond(w, brokers, http.StatusOK)
+}
+
+
+func (b *BrokerHandler) Command(w http.ResponseWriter, r *http.Request) {
+	body, _ := ioutil.ReadAll(r.Body)
+	vars := mux.Vars(r)
+	idReq := vars["id"]
+	if idReq == "" {
+		err := errors.New("id is required")
+		log.WithFields(log.Fields{"id": idReq}).Error(err.Error())
+		web.RespondError(w, err, http.StatusBadRequest)
+		return
+	}
+
+	id := bson.ObjectIdHex(idReq)
+
+
+	_,err:= b.repository.Get(id)
+	if err!=nil{
+		log.WithFields(log.Fields{"id": idReq}).Error(err.Error())
+		web.RespondError(w, err, http.StatusBadRequest)
+	}
+
+	commandRequest:= &collector.CommandRequest{}
+
+	if err := json.Unmarshal(body, commandRequest); err != nil {
+		log.WithFields(log.Fields{"commandRequest": commandRequest, "err": err.Error()}).Error("Payload invalid of command request")
+		web.RespondError(w, err, http.StatusUnprocessableEntity)
+		return
+	}
+
+	if err:= b.collector.Execute(commandRequest);err!=nil{
+		web.Respond(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	web.Respond(w, nil, http.StatusCreated)
 }

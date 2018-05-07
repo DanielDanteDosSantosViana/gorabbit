@@ -2,47 +2,66 @@ package collector
 
 
 import (
-	"fmt"
-	"log"
-
-	"github.com/streadway/amqp"
 	repo "github.com/DanielDanteDosSantosViana/gorabbit/internal/event/repository"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/platform/db"
+	"errors"
 )
 
+
+var ErrUnknownCommand = errors.New("unknown command")
+
 type CommandRequest struct {
-	Cmd string
+	Cmd string `json:"cmd" validate:"required"`
+	Type string `json:"type" validate:"required"`
+	connId string `json:"conn_id"`
+	workId string `json:"work_id"`
 }
 
 type Command interface {
 	Execute() error
-	BuildCommand(cmd CommandRequest) Command
 }
 
 type Collector struct {
-	workers  map[string]*Worker
+	connections map[string]*Connection
 	eventRepo repo.EventRepository
 }
 
 func NewCollector(sessiondb db.Session) (*Collector,error) {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/all")
-	failOnError(err, "Failed to connect to RabbitMQ")
-	defer conn.Close()
 	repository := repo.NewMongoEventRepository(sessiondb)
 	return open(repository)
 }
 
 func open(eventRepo repo.EventRepository)(*Collector,error){
-	return &Collector{eventRepo},nil
+	connections := make(map[string]*Connection)
+	return &Collector{eventRepo:eventRepo,connections:connections},nil
 }
 
-func (c * Collector)Run(cmd Command) error{
-	return cmd.Execute()
+func (c * Collector)AddCollector(id string, urlConnection string){
+	c.connections[id] = NewConnection(urlConnection)
 }
 
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
-		panic(fmt.Sprintf("%s: %s", msg, err))
+func (c * Collector)addWorker(){
+
+}
+
+func(c *Collector)buildCommand(cmd * CommandRequest) (Command, error){
+	switch cmd.Type {
+
+	case "queue":
+		return c.connections[cmd.connId].workers[cmd.workId].AddCmd(cmd.Cmd),nil
+
+	case "broker":
+		return c.connections[cmd.connId].AddCmd(cmd.Cmd),nil;
+
+	default:
+		return nil, ErrUnknownCommand
+	}
+}
+
+func (c * Collector)Execute(cmdRequest *CommandRequest) error{
+	if cmd,err:= c.buildCommand(cmdRequest);err!=nil{
+		return err
+	}else{
+		return cmd.Execute()
 	}
 }

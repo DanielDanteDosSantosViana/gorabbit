@@ -20,7 +20,7 @@ func AddAPI(sessiondb db.Session, api *mux.Router) *mux.Router {
 	api.HandleFunc("/brokers/{broker_id}/queues", queueHandler.Create).Methods(http.MethodPost)
 	api.HandleFunc("/brokers/{broker_id}/queues/{id}", queueHandler.Delete).Methods(http.MethodDelete)
 	api.HandleFunc("/brokers/{broker_id}/queues", queueHandler.List).Methods(http.MethodGet)
-	api.HandleFunc("/brokers/{broker_id}/queues", queueHandler.Command).Methods(http.MethodPut)
+	api.HandleFunc("/brokers/{broker_id}/queues/cmd", queueHandler.Command).Methods(http.MethodPut)
 
 	return api
 }

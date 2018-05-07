@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"github.com/DanielDanteDosSantosViana/gorabbit/internal/collector"
-	"sync"
 )
 
 func init() {
@@ -30,14 +29,14 @@ func main() {
 
 	negroniAPI := negroni.New()
 
-	c,err = collector.NewCollector(session)
+	collector,err := collector.NewCollector(session)
 	if err!=nil{
 		log.Error(err)
 	}
 
 
 	api := web.NewAPI()
-	broker_routes.AddAPI(session, api)
+	broker_routes.AddAPI(session, api,collector)
 	queue_routes.AddAPI(session, api)
 
 	negroniAPI.UseHandler(api)
